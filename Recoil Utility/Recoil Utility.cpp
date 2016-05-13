@@ -19,7 +19,6 @@
 //timestampSettled
 //END
 
-#include "stdafx.h"
 #include <chrono>
 #include <thread>
 #include <iostream>
@@ -31,10 +30,7 @@ typedef struct{
 	float vec[3];
 } Vector;
 
-long updateTime(){
-	time = chrono::duration_cast<chrono::milliseconds>(
-		chrono::system_clock::now().time_since_epoch()).count();
-}
+
 
 Vector punch;
 
@@ -42,7 +38,7 @@ Vector punch;
 These variables are kept volatile to improve performance:
 */
 volatile int shots;
-volatile long time;
+unsigned long long timeMS = 69;
 volatile int x;
 volatile int y;
 volatile bool running = false;
@@ -67,12 +63,8 @@ them with patches or anything.
 DWORD client;
 DWORD myBase;
 
-
-void updateShots(){
-	while (running){
-		if (mutex) continue;
-		readShots();
-	}
+void updateTime(){
+	timeMS = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
 }
 
 void readShots(){
@@ -85,8 +77,16 @@ void readPunch(){
 	punch = manager->Read<Vector>(myBase + dwPunch);
 }
 
+void updateShots(){
+	while (running){
+		if (mutex) continue;
+		readShots();
+	}
+}
+
 void log(){
-	cout << time << x << y << shots << "\n";
+	updateTime();
+	cout << timeMS << "," << x << "," << y << "," << shots << "\n";
 }
 
 /*
@@ -94,8 +94,8 @@ This is hard-coded for 1920 x 1080
 todo: fix that.
 */
 void calculate(){
-	x = 960 - (21.3333     * (punch.vec[1]));//positive punchvec1 pulls aim to the left
-	y = 540 + (12 * (punch.vec[0]));//positive punchvec0 pulls aim down...?
+	x = 960 - (21.3333333 * (punch.vec[1]));//positive punchvec1 pulls aim to the left
+	y = 540 + (12         * (punch.vec[0]));//positive punchvec0 pulls aim down...?
 }
 
 int main()
@@ -116,7 +116,7 @@ int main()
 	
 	
 	thread aThread(updateShots);
-
+	//cout << "END" << "\n";
 	int lastShots = -1;
 	while (1){
 		if (shots != lastShots){
