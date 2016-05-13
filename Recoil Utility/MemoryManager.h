@@ -10,11 +10,11 @@
 #include <stdarg.h>
 
 
-class ShootMem {
+class MemoryManager {
 
 public:
-	ShootMem();
-	~ShootMem();
+	MemoryManager();
+	~MemoryManager();
 
 	bool Attach();
 

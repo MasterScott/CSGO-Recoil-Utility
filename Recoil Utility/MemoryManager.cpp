@@ -5,11 +5,11 @@
 
 using namespace std;
 
-ShootMem::ShootMem() {}
-ShootMem::~ShootMem() {}
+MemoryManager::MemoryManager() {}
+MemoryManager::~MemoryManager() {}
 
 //returns whether a given char* is csgo.exe
-int ShootMem::isExe(WCHAR * program) {
+int MemoryManager::isExe(WCHAR * program) {
 	bool answer = (
 		program[0] + program[0] == 198 &&
 		program[0] + program[1] == 214 &&
@@ -23,7 +23,7 @@ int ShootMem::isExe(WCHAR * program) {
 }
 
 //returns whether a given char* is the client.dll
-int ShootMem::isClient(WCHAR * program) {
+int MemoryManager::isClient(WCHAR * program) {
 	//cout << program;
 	//cout << "\t";
 	bool answer = (
@@ -41,7 +41,7 @@ int ShootMem::isClient(WCHAR * program) {
 }
 
 //does a process walk and attaches to the csgo exe
-bool ShootMem::Attach() {
+bool MemoryManager::Attach() {
 	HANDLE handle = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
 	PROCESSENTRY32 entry;
 	entry.dwSize = sizeof(entry);
@@ -62,7 +62,7 @@ bool ShootMem::Attach() {
 }
 
 //does a dll walk and finds client.dll
-DWORD ShootMem::GetModule() {
+DWORD MemoryManager::GetModule() {
 	HANDLE module = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pID);
 	MODULEENTRY32 mEntry;
 	mEntry.dwSize = sizeof(mEntry);

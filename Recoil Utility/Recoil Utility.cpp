@@ -3,36 +3,133 @@
 
 //END
 //AK-47
-//timestamp,x1,y1
-//timestamp,x2,y2
+//timestamp,x1,y1,1
+//timestamp,x2,y2,2
 //...
-//timestamp,x30,y30
+//timestamp,x30,y30,30
 //OUT
 //timestampSettled
 //END
 //M4A1-S
-//timestamp,x1,y1
-//timestamp,x2,y2
+//timestamp,x1,y1,1
+//timestamp,x2,y2,2
 //...
-//timestamp,x20,y20
+//timestamp,x20,y20,20
 //OUT
 //timestampSettled
 //END
 
 #include "stdafx.h"
 #include <chrono>
+#include <thread>
+#include <iostream>
 #include "MemoryManager.h"
 
 using namespace std;
 
-long getTime(){
-	long ms = chrono::duration_cast<chrono::milliseconds>(
+typedef struct{
+	float vec[3];
+} Vector;
+
+long updateTime(){
+	time = chrono::duration_cast<chrono::milliseconds>(
 		chrono::system_clock::now().time_since_epoch()).count();
-	return ms;
+}
+
+Vector punch;
+
+/*
+These variables are kept volatile to improve performance:
+*/
+volatile int shots;
+volatile long time;
+volatile int x;
+volatile int y;
+volatile bool running = false;
+volatile bool mutex = false;
+MemoryManager * manager;
+
+/*
+These DWORDs must be updated pretty much every patch
+dwShots: offset from local player address showing amount of shots fired
+dwPunch: offset from local player address showing current aimpunch
+dwLocal: offset of the local player address from the client
+*/
+DWORD dwShots = 0x0000A2B0;
+DWORD dwPunch = 0x00003018;
+DWORD dwLocal = 0x00A844DC;
+
+
+/*
+These DWORDs are calculated internally, don't worry about changing
+them with patches or anything.
+*/
+DWORD client;
+DWORD myBase;
+
+
+void updateShots(){
+	while (running){
+		if (mutex) continue;
+		readShots();
+	}
+}
+
+void readShots(){
+	myBase = manager->Read<DWORD>(client + dwLocal);
+	shots = manager->Read<int>(myBase + dwShots);
+}
+
+void readPunch(){
+	myBase = manager->Read<DWORD>(client + dwLocal);
+	punch = manager->Read<Vector>(myBase + dwPunch);
+}
+
+void log(){
+	cout << time << x << y << shots << "\n";
+}
+
+/*
+This is hard-coded for 1920 x 1080
+todo: fix that.
+*/
+void calculate(){
+	x = 960 - (21.3333     * (punch.vec[1]));//positive punchvec1 pulls aim to the left
+	y = 540 + (12 * (punch.vec[0]));//positive punchvec0 pulls aim down...?
 }
 
 int main()
 {
+	manager = new MemoryManager();
+	//attach manager to process and find dll
+	while (!manager->Attach()) {
+		Sleep(100);
+	}
+	do {
+		Sleep(100);
+		client = manager->GetModule();
+	} while (client == (DWORD)false);
+
+
+
+	running = true;//enable threads
+	
+	
+	thread aThread(updateShots);
+
+	int lastShots = -1;
+	while (1){
+		if (shots != lastShots){
+			mutex = true;
+			readPunch();
+			calculate();
+			log();
+			lastShots = shots;
+			mutex = false;
+		}
+	}
+	
+	running = false;//disable threads
 	return 0;
 }
 
